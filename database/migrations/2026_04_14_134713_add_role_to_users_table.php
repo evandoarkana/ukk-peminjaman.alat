@@ -12,11 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // Kita set defaultnya menjadi 'peminjam'
-            $table->string('role')->default('peminjam')->after('email');
-        });
+    $table->string('role')->default('peminjam');
+});
     }
-
 
     /**
      * Reverse the migrations.

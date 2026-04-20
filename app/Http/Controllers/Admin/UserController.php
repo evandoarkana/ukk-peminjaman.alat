@@ -4,24 +4,23 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Peminjaman;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
     /**
-     * 1. Menampilkan Daftar User (Read)
-     * Menggunakan pagination agar halaman memuat dengan cepat sesuai instruksi soal.
+     * Menampilkan Daftar User dengan Pagination
      */
     public function index()
     {
-        // Poin 54 & 58: Gunakan pagination untuk efisiensi data besar
-        $users = User::latest()->paginate(10); 
+        $users = User::latest()->paginate(10);
         return view('admin.user.index', compact('users'));
     }
 
     /**
-     * 2. Menampilkan Form Tambah (Create)
+     * Form Tambah User
      */
     public function create()
     {
@@ -29,76 +28,124 @@ class UserController extends Controller
     }
 
     /**
-     * 3. Menyimpan User Baru (Store)
-     * Melakukan validasi input sesuai spesifikasi role (Privilege User).
+     * Simpan User Baru
      */
     public function store(Request $request)
-    {
-        // PERBAIKAN: Pastikan View Anda memiliki input 'name', 'email', 'password', dan 'role'
-        $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users',
-            'password' => 'required|min:6',
-            'role'     => 'required|in:admin,petugas,peminjam', // Sesuai Poin 28 & 30
-        ]);
+{
+    $request->validate([
+    'name' => 'required|string|max:255',
+    'email' => 'required|string|email:rfc,dns|unique:users', 
+    'password' => [
+        'required', 
+        'string',
+        'min:8', 
+        'regex:/[a-z]/',      // Minimal 1 huruf kecil
+        'regex:/[A-Z]/',      // Minimal 1 huruf kapital
+        'regex:/[0-9]/',      // Minimal 1 angka
+    ],
+    'role' => 'required|in:admin,petugas,peminjam',
+], [
+    // Pesan Kustom (Custom Messages)
+    'email.email' => 'Format email harus benar (menggunakan @ dan domain .com/.id/dll).',
+    'password.min' => 'Password minimal harus 8 karakter.',
+    'password.regex' => 'Password harus kombinasi dari huruf besar, huruf kecil, dan angka.',
+    'role.required' => 'Pilih role user terlebih dahulu.',
+]);
 
-        User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password), // Poin 53: Best Practices keamanan
-            'role'     => $request->role,
-        ]);
+    User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'password' => Hash::make($request->password),
+        'role' => $request->role,
+    ]);
 
-        return redirect()->route('admin.user.index')->with('success', 'User berhasil dibuat!');
-    }
-
+    return redirect()->route('admin.user.index')->with('success', 'User berhasil ditambahkan dengan keamanan tinggi.');
+}
     /**
-     * 4. Menampilkan Form Edit
+     * Form Edit User
      */
-    public function edit(User $user)
+    public function edit($id)
     {
+        $user = User::findOrFail($id);
         return view('admin.user.edit', compact('user'));
     }
 
     /**
-     * 5. Memperbarui Data User (Update)
-     * Menangani pembaruan data secara selektif (Cek privilege user).
+     * Update Data User
      */
-    public function update(Request $request, User $user)
-    {
-        $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email,' . $user->id,
-            'password' => 'nullable|min:6', // Password opsional saat update
-            'role'     => 'required|in:admin,petugas,peminjam',
-        ]);
+    public function update(Request $request, $id)
+{
+    $user = User::findOrFail($id);
 
-        $data = [
-            'name'  => $request->name,
-            'email' => $request->email,
-            'role'  => $request->role,
+    $rules = [
+        'name' => 'required|string|max:255',
+        'email' => 'required|string|email:rfc,dns|unique:users,email,'.$id,
+        'role' => 'required|in:admin,petugas,peminjam',
+    ];
+
+    // Jika password diisi, maka wajib mengikuti aturan kombinasi
+    if ($request->filled('password')) {
+        $rules['password'] = [
+            'min:8', 
+            'regex:/[a-z]/', 
+            'regex:/[A-Z]/', 
+            'regex:/[0-9]/'
         ];
-
-        if ($request->filled('password')) {
-            $data['password'] = Hash::make($request->password);
-        }
-
-        $user->update($data);
-
-        return redirect()->route('admin.user.index')->with('success', 'Data user berhasil diperbarui!');
     }
+
+    $request->validate($rules);
+
+    $user->name = $request->name;
+    $user->email = $request->email;
+    $user->role = $request->role;
+
+    if ($request->filled('password')) {
+        $user->password = Hash::make($request->password);
+    }
+
+    $user->save();
+
+    return redirect()->route('admin.user.index')->with('success', 'Data user diperbarui dengan validasi yang benar.');
+}
 
     /**
-     * 6. Menghapus User (Delete)
+     * Hapus User dengan Peringatan Transaksi Aktif
      */
-    public function destroy(User $user)
-    {
-        // Mencegah penghapusan diri sendiri untuk menjaga kestabilan sistem
-        if (auth()->id() == $user->id) {
-            return redirect()->route('admin.user.index')->with('error', 'Anda tidak dapat menghapus akun sendiri!');
-        }
+    public function destroy($id)
+{
+    $user = User::findOrFail($id);
 
+    if (auth()->id() == $id) {
+        return redirect()->back()->with('error', 'Anda tidak bisa menghapus akun sendiri!');
+    }
+
+    // 1. Cek apakah ada transaksi yang BELUM selesai
+    $transaksiAktif = \App\Models\Peminjaman::where('user_id', $id)
+                        ->whereIn('status', ['dipinjam', 'diproses', 'terlambat']) 
+                        ->exists();
+
+    if ($transaksiAktif) {
+        return redirect()->back()->with('error', 'Gagal hapus! User masih meminjam alat. Harap kembalikan alat dulu.');
+    }
+
+    try {
+        // 2. HAPUS RIWAYAT: Bersihkan semua data transaksi user ini (meskipun sudah kembali)
+        // Ini dilakukan agar Foreign Key tidak lagi menjegal penghapusan user
+        \App\Models\Peminjaman::where('user_id', $id)->delete();
+
+        // 3. Hapus User
         $user->delete();
-        return redirect()->route('admin.user.index')->with('success', 'User berhasil dihapus!');
+
+        return redirect()->route('admin.user.index')->with('success', 'User dan semua riwayat transaksinya berhasil dihapus.');
+    } catch (\Exception $e) {
+        return redirect()->back()->with('error', 'Gagal menghapus karena masalah database.');
     }
 }
+     /* Menampilkan detail pengguna tertentu.
+     */
+    public function show($id)
+    {
+        $user = User::findOrFail($id);
+        return view('admin.user.show', compact('user'));
+    }
+} // Penutup Class UserController (Wajib Ada)

@@ -1,64 +1,150 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="container-fluid px-4" style="margin-top: 25px; font-family: 'Segoe UI', sans-serif;">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 style="font-weight: 700; color: #333; margin: 0;">📊 Log Aktivitas Sistem</h4>
-            <p style="color: #718096; font-size: 0.9rem; margin: 0;">Rekaman jejak aktivitas pengguna dalam sistem
-                persewaan alat.</p>
-        </div>
+
+<style>
+    body {
+        background: #0f172a;
+    }
+
+    .log-container {
+        background: #1e293b;
+        border-radius: 16px;
+        border: 1px solid #334155;
+        overflow: hidden;
+    }
+
+    .log-header h4 {
+        color: #f8fafc;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .log-header p {
+        color: #94a3b8;
+        font-size: 13px;
+        margin: 0;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: #020617;
+        border-bottom: 1px solid #334155;
+    }
+
+    th {
+        padding: 14px;
+        text-align: left;
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #818cf8;
+        letter-spacing: 1px;
+    }
+
+    tbody tr {
+        border-bottom: 1px solid #334155;
+        transition: 0.2s;
+    }
+
+    tbody tr:hover {
+        background: rgba(99, 102, 241, 0.05);
+    }
+
+    td {
+        padding: 14px;
+        font-size: 13px;
+        color: #cbd5e1;
+    }
+
+    .user-name {
+        font-weight: 600;
+        color: #f8fafc;
+    }
+
+    .badge-log {
+        background: rgba(99, 102, 241, 0.15);
+        color: #818cf8;
+        padding: 5px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .ip-text {
+        color: #64748b;
+        font-size: 12px;
+        font-family: monospace;
+    }
+
+    .empty {
+        text-align: center;
+        padding: 40px;
+        color: #64748b;
+    }
+
+    /* Pagination dark */
+    .pagination {
+        --bs-pagination-bg: #1e293b;
+        --bs-pagination-border-color: #334155;
+        --bs-pagination-color: #000000;
+        --bs-pagination-hover-bg: #6366f1;
+        --bs-pagination-hover-color: white;
+        --bs-pagination-active-bg: #6366f1;
+        --bs-pagination-active-border-color: #6366f1;
+    }
+</style>
+
+<div class="container-fluid px-4" style="margin-top: 25px;">
+
+    {{-- Header --}}
+    <div class="log-header mb-4">
+        <h4>📊 Log Aktivitas Sistem</h4>
+        <p>Rekaman jejak aktivitas pengguna dalam sistem persewaan alat.</p>
     </div>
 
-    <div
-        style="background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid #e3e6f0;">
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead style="background-color: #f8f9fc; border-bottom: 2px solid #e3e6f0;">
+    {{-- Table --}}
+    <div class="log-container">
+        <table>
+            <thead>
                 <tr>
-                    <th
-                        style="padding: 15px; text-align: left; color: #4e73df; font-size: 12px; text-transform: uppercase;">
-                        Waktu</th>
-                    <th
-                        style="padding: 15px; text-align: left; color: #4e73df; font-size: 12px; text-transform: uppercase;">
-                        User</th>
-                    <th
-                        style="padding: 15px; text-align: left; color: #4e73df; font-size: 12px; text-transform: uppercase;">
-                        Aktivitas</th>
-                    <th
-                        style="padding: 15px; text-align: left; color: #4e73df; font-size: 12px; text-transform: uppercase;">
-                        Deskripsi</th>
-                    <th
-                        style="padding: 15px; text-align: left; color: #4e73df; font-size: 12px; text-transform: uppercase;">
-                        IP Address</th>
+                    <th>Waktu</th>
+                    <th>User</th>
+                    <th>Aktivitas</th>
+                    <th>Deskripsi</th>
+                    <th>IP Address</th>
                 </tr>
             </thead>
+
             <tbody>
-                {{-- Menggunakan @forelse untuk menangani kondisi jika data log masih kosong [cite: 63] --}}
                 @forelse($logs as $log)
-                <tr style="border-bottom: 1px solid #e3e6f0;">
-                    <td style="padding: 15px; font-size: 13px; color: #6e707e;">
-                        {{ $log->created_at->format('d/m/Y H:i') }}
-                    </td>
-                    <td style="padding: 15px; font-weight: 600; color: #3a3b45;">
+                <tr>
+                    <td>{{ $log->created_at->format('d/m/Y H:i') }}</td>
+
+                    <td class="user-name">
                         {{ $log->user->name ?? 'System' }}
                     </td>
-                    <td style="padding: 15px;">
-                        <span class="badge"
-                            style="background: #eef2ff; color: #4338ca; padding: 5px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase;">
+
+                    <td>
+                        <span class="badge-log">
                             {{ $log->aktivitas }}
                         </span>
                     </td>
-                    <td style="padding: 15px; color: #666; font-size: 13px;">
-                        {{ $log->deskripsi }}
-                    </td>
-                    <td style="padding: 15px; color: #999; font-size: 11px; font-family: monospace;">
+
+                    <td>{{ $log->deskripsi }}</td>
+
+                    <td class="ip-text">
                         {{ $log->ip_address }}
                     </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="5" style="padding: 40px; text-align: center; color: #a0aec0;">
-                        Belum ada aktivitas yang tercatat dalam sistem[cite: 62].
+                    <td colspan="5" class="empty">
+                        Belum ada aktivitas yang tercatat dalam sistem.
                     </td>
                 </tr>
                 @endforelse
@@ -66,9 +152,11 @@
         </table>
     </div>
 
-    {{-- Navigasi Pagination untuk efisiensi data besar [cite: 58] --}}
+    {{-- Pagination --}}
     <div class="mt-4 d-flex justify-content-center">
         {{ $logs->links() }}
     </div>
+
 </div>
+
 @endsection

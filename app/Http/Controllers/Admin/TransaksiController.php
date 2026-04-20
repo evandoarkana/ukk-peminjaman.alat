@@ -19,13 +19,10 @@ class TransaksiController extends Controller
      * Data dikelompokkan berdasarkan kode_peminjaman agar muncul dalam satu baris [cite: 54]
      */
     public function indexPeminjaman() {
-        $peminjamans = Peminjaman::with(['user', 'detailPeminjaman.alat']) // WAJIB ADA INI
-            ->where('status', 'disetujui')
-            ->latest()
-            ->get()
-            ->groupBy('kode_peminjaman');
-        return view('admin.transaksi.peminjaman_index', compact('peminjamans'));
-    }
+    // Hanya tampilkan yang belum disetujui
+    $peminjamans = Peminjaman::where('status', 'Pending')->get();
+    return view('admin.transaksi.peminjaman_index', compact('peminjamans'));
+}
     /**
      * Menampilkan form untuk membuat peminjaman baru [cite: 27]
      */
@@ -109,16 +106,92 @@ class TransaksiController extends Controller
         }
     }
 
+    public function setujuiKembali($id)
+{
+    // Ambil data peminjaman beserta detail barangnya
+    $peminjaman = Peminjaman::with('detailPeminjaman.alat')->findOrFail($id);
+
+    try {
+        DB::beginTransaction();
+
+        // 1. Update status jadi selesai dan isi tanggal kembali real
+        $peminjaman->update([
+            'status' => 'selesai',
+            'tgl_kembali_real' => now(),
+            'petugas_id' => auth()->id(),
+        ]);
+
+        // 2. Kembalikan stok untuk semua alat yang ada di detail_peminjamans
+        foreach ($peminjaman->detailPeminjaman as $detail) {
+            if ($detail->alat) {
+                $detail->alat->increment('stok', $detail->jumlah);
+            }
+        }
+
+        DB::commit();
+        return redirect()->back()->with('success', 'Barang berhasil diterima kembali dan stok diperbarui!');
+    } catch (\Exception $e) {
+        DB::rollback();
+        return redirect()->back()->with('error', 'Gagal memproses: ' . $e->getMessage());
+    }
+}
+
+// Cari baris sekitar 120-140 di TransaksiController.php
+// Hapus fungsi setujui yang lama, lalu tempel kode ini:
+
+        public function setujui($id)
+{
+    // Ambil data peminjaman beserta detail alatnya
+    $peminjaman = Peminjaman::with('detailPeminjaman.alat')->findOrFail($id);
+    
+    try {
+        DB::beginTransaction();
+
+        // 1. Update status ke 'disetujui' (harus huruf kecil sesuai ENUM MySQL kamu)
+        $peminjaman->update([
+            'status' => 'disetujui',
+            'petugas_id' => auth()->id() // Admin yang menyetujui tercatat sebagai petugas
+        ]);
+
+        // 2. Kurangi stok untuk setiap alat yang dipinjam
+        foreach ($peminjaman->detailPeminjaman as $detail) {
+            if ($detail->alat) {
+                // Pastikan stok cukup sebelum dikurangi (Opsional tapi disarankan)
+                if ($detail->alat->stok < $detail->jumlah) {
+                    throw new \Exception("Stok alat {$detail->alat->nama_alat} tidak mencukupi.");
+                }
+                $detail->alat->decrement('stok', $detail->jumlah);
+            }
+        }
+
+        DB::commit();
+        return redirect()->back()->with('success', 'Peminjaman telah disetujui dan stok alat dikurangi.');
+    } catch (\Exception $e) {
+        DB::rollback();
+        return redirect()->back()->with('error', 'Gagal memproses: ' . $e->getMessage());
+    }
+}
+
+public function tolak($id)
+{
+    // Update status jadi Ditolak
+    \Illuminate\Support\Facades\DB::table('peminjamans')
+        ->where('id', $id)
+        ->update(['status' => 'Ditolak']);
+
+    return redirect()->back()->with('error', 'Peminjaman telah ditolak.');
+}
     /**
      * Menampilkan riwayat pengembalian alat [cite: 30]
      */
     public function indexPengembalian()
-    {
-        $pengembalians = Pengembalian::with(['peminjaman.user', 'peminjaman.alat', 'petugas'])
-            ->latest()
-            ->paginate(10);
+{
+    // 1. Ambil data dari database
+    $peminjamans = \App\Models\Peminjaman::all(); 
 
-        return view('admin.transaksi.pengembalian_index', compact('pengembalians'));
+    // 2. Kirim variabel ke view
+    // Pastikan nama variabel 'peminjamans' (pake 's') sesuai dengan yang di Blade
+    return view('admin.transaksi.pengembalian_index', compact('peminjamans'));
     }
 
     /**

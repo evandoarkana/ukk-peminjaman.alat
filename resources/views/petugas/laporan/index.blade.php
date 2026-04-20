@@ -1,86 +1,228 @@
 @extends('layouts.petugas')
 
 @section('content')
-<div class="container-fluid px-4" style="margin-top: 25px; font-family: sans-serif;">
+<div class="container-fluid px-4 py-4">
+
+    {{-- HEADER --}}
     <div class="mb-4">
-        <h4 style="font-weight: 600; color: #333; margin: 0;">📋 Laporan Pengembalian Alat</h4>
-        <p style="color: #858796; font-size: 13px; margin: 0;">Rekapitulasi data transaksi yang telah selesai.</p>
+        <h5 class="text-white fw-semibold mb-1">Laporan Peminjaman</h5>
+        <p class="text-slate-500 small mb-0">
+            Rekap transaksi peminjaman dan pengembalian
+        </p>
     </div>
 
-    <div
-        style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e3e6f0; margin-bottom: 20px;">
-        <form action="{{ route('petugas.laporan.index') }}" method="GET" class="row g-3 align-items-end">
+    {{-- FILTER --}}
+    <div class="card-filter mb-4">
+        <form method="GET" class="row g-3 align-items-end">
+
             <div class="col-md-3">
-                <label style="font-size: 12px; font-weight: 700; color: #4e73df;">TANGGAL MULAI</label>
-                <input type="date" name="tgl_mulai" class="form-control" value="{{ $tgl_mulai }}">
+                <label class="label">Tanggal Mulai</label>
+                <input type="date" name="tgl_mulai"
+                       class="input"
+                       value="{{ request('tgl_mulai') }}">
             </div>
+
             <div class="col-md-3">
-                <label style="font-size: 12px; font-weight: 700; color: #4e73df;">TANGGAL SELESAI</label>
-                <input type="date" name="tgl_selesai" class="form-control" value="{{ $tgl_selesai }}">
+                <label class="label">Tanggal Selesai</label>
+                <input type="date" name="tgl_selesai"
+                       class="input"
+                       value="{{ request('tgl_selesai') }}">
             </div>
-            <div class="col-md-3">
-                <button type="submit" class="btn btn-primary w-100" style="background: #4e73df; font-weight: 600;">
-                    <i class="fas fa-filter"></i> Filter Data
+
+            <div class="col-md-6 d-flex gap-2">
+                <button type="submit" class="btn-primary w-100">
+                    Filter
                 </button>
-            </div>
-            <div class="col-md-2">
-                <a href="{{ route('petugas.laporan.index') }}" class="btn btn-secondary w-100"
-                    style="font-weight: 600;">Reset</a>
-            </div>
-            <div class="col-md-3">
-                <a href="{{ route('petugas.laporan.cetak', ['tgl_mulai' => $tgl_mulai, 'tgl_selesai' => $tgl_selesai]) }}"
-                    target="_blank" class="btn btn-danger w-100" style="font-weight: 600;">
-                    <i class="fas fa-file-pdf"></i> Cetak PDF
+
+                <a href="{{ route('petugas.laporan.cetak', request()->all()) }}"
+                   class="btn-outline w-100">
+                    Cetak PDF
                 </a>
             </div>
+
         </form>
     </div>
 
-    <div
-        style="background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e3e6f0; overflow: hidden;">
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead style="background-color: #f8f9fc; border-bottom: 2px solid #e3e6f0;">
+    {{-- TABLE --}}
+    <div class="table-wrapper">
+        <table class="table-modern w-100">
+            <thead>
                 <tr>
-                    <th style="padding: 15px; text-align: left; color: #4e73df; font-size: 12px;">NO</th>
-                    <th style="padding: 15px; text-align: left; color: #4e73df; font-size: 12px;">PEMINJAM</th>
-                    <th style="padding: 15px; text-align: left; color: #4e73df; font-size: 12px;">ALAT</th>
-                    <th style="padding: 15px; text-align: center; color: #4e73df; font-size: 12px;">TGL KEMBALI</th>
-                    <th style="padding: 15px; text-align: right; color: #4e73df; font-size: 12px;">DENDA</th>
+                    <th>Kode</th>
+                    <th>Peminjam</th>
+                    <th>Alat</th>
+                    <th>Tanggal Pinjam</th>
+                    <th class="text-end">Denda</th>
+                    <th class="text-center">Status</th>
                 </tr>
             </thead>
+
             <tbody>
-                @php $total_denda = 0; @endphp
+                @php $total = 0; @endphp
+
                 @forelse($laporans as $l)
-                <tr style="border-bottom: 1px solid #e3e6f0;">
-                    <td style="padding: 15px; color: #6e707e;">{{ $loop->iteration }}</td>
-                    <td style="padding: 15px; font-weight: 600; color: #3a3b45;">{{ $l->user->name }}</td>
-                    <td style="padding: 15px; color: #6e707e;">{{ $l->alat->nama_alat ?? 'Alat tidak ditemukan' }} ({{ $l->jumlah }})</td>
-                    <td style="padding: 15px; text-align: center; color: #6e707e;">
-                        {{ \Carbon\Carbon::parse($l->tgl_kembali_real)->format('d/m/Y') }}
+                <tr>
+                    <td class="font-mono text-slate-300">
+                        {{ $l->kode_peminjaman }}
                     </td>
-                    <td
-                        style="padding: 15px; text-align: right; font-weight: 700; color: {{ $l->denda > 0 ? '#e74a3b' : '#1cc88a' }};">
-                        Rp {{ number_format($l->denda, 0, ',', '.') }}
+
+                    <td class="text-white">
+                        {{ $l->user->name ?? '-' }}
+                    </td>
+
+                    <td class="text-slate-300">
+                        {{ $l->alat->nama_alat ?? '-' }}
+                    </td>
+
+                    <td class="text-slate-400">
+                        {{ \Carbon\Carbon::parse($l->tgl_pinjam)->format('d M Y') }}
+                    </td>
+
+                    <td class="text-end {{ $l->denda > 0 ? 'text-amber-400' : 'text-slate-500' }}">
+                        Rp {{ number_format($l->denda) }}
+                    </td>
+
+                    <td class="text-center">
+                        <span class="status {{ strtolower($l->status) }}">
+                            {{ $l->status }}
+                        </span>
                     </td>
                 </tr>
-                @php $total_denda += $l->denda; @endphp
+
+                @php $total += $l->denda; @endphp
+
                 @empty
                 <tr>
-                    <td colspan="5" style="padding: 40px; text-align: center; color: #999;">Tidak ada data laporan untuk
-                        periode ini.</td>
+                    <td colspan="6" class="text-center py-4 text-slate-500">
+                        Tidak ada data
+                    </td>
                 </tr>
                 @endforelse
             </tbody>
-            @if($laporans->count() > 0)
-            <tfoot style="background: #f8f9fc; font-weight: 800;">
+
+            @if(!$laporans->isEmpty())
+            <tfoot>
                 <tr>
-                    <td colspan="4" style="padding: 15px; text-align: right; color: #333;">TOTAL PENDAPATAN DENDA:</td>
-                    <td style="padding: 15px; text-align: right; color: #e74a3b;">Rp
-                        {{ number_format($total_denda, 0, ',', '.') }}</td>
+                    <td colspan="4" class="text-end text-slate-500 small">
+                        Total Denda
+                    </td>
+                    <td class="text-end text-white fw-semibold">
+                        Rp {{ number_format($total) }}
+                    </td>
+                    <td></td>
                 </tr>
             </tfoot>
             @endif
+
         </table>
     </div>
+
 </div>
+
+<style>
+
+/* FILTER CARD */
+.card-filter {
+    background: #1e293b;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid #334155;
+}
+
+/* LABEL */
+.label {
+    font-size: 11px;
+    color: #94a3b8;
+    display: block;
+    margin-bottom: 4px;
+}
+
+/* INPUT */
+.input {
+    width: 100%;
+    background: #0f172a;
+    border: 1px solid #334155;
+    color: white;
+    padding: 8px;
+    border-radius: 6px;
+}
+
+/* BUTTON */
+.btn-primary {
+    background: #6366f1;
+    border: none;
+    color: white;
+    padding: 8px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.btn-outline {
+    border: 1px solid #334155;
+    color: #cbd5f5;
+    padding: 8px;
+    border-radius: 6px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+}
+
+/* TABLE WRAPPER */
+.table-wrapper {
+    background: #1e293b;
+    border-radius: 10px;
+    border: 1px solid #334155;
+    overflow: hidden;
+}
+
+/* TABLE */
+.table-modern {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-modern th {
+    background: #0f172a;
+    color: #64748b;
+    font-size: 11px;
+    padding: 12px;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.table-modern td {
+    padding: 12px;
+    border-bottom: 1px solid #334155;
+}
+
+/* STATUS */
+.status {
+    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+}
+
+/* STATUS COLORS */
+.status.selesai {
+    background: #10b981;
+    color: white;
+}
+
+.status.disetujui {
+    background: #3b82f6;
+    color: white;
+}
+
+.status.menunggu {
+    background: #f59e0b;
+    color: white;
+}
+
+.status.ditolak {
+    background: #ef4444;
+    color: white;
+}
+
+</style>
 @endsection

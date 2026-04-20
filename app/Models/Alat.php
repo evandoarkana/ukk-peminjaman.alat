@@ -43,4 +43,12 @@ class Alat extends Model
     {
         return $this->hasMany(Peminjaman::class, 'alat_id');
     }
+
+    // app/Models/Alat.php
+
+public function detail_peminjamans()
+{
+    // Nama tabel di database kamu adalah detail_peminjamans
+    return $this->hasMany(DetailPeminjaman::class, 'alat_id');
+}
 }

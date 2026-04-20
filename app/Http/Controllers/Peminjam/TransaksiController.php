@@ -1,17 +1,19 @@
 <?php
 
-namespace App\Http\Controllers\Peminjam; // Pastikan namespace ini sesuai folder Anda
+namespace App\Http\Controllers\Peminjam;
 
 use App\Http\Controllers\Controller;
 use App\Models\Alat;
 use App\Models\Peminjaman;
-use App\Models\DetailPeminjaman; // <--- TARUH DI SINI
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class TransaksiController extends Controller
 {
-    // 1. Menambahkan alat ke "Keranjang" (Session)
+    // ===============================
+    // TAMBAH KE CART
+    // ===============================
     public function addToCart(Request $request)
     {
         $request->validate([
@@ -21,15 +23,13 @@ class TransaksiController extends Controller
 
         $alat = Alat::findOrFail($request->alat_id);
 
-        // Validasi stok alat sebelum masuk keranjang
         if ($request->jumlah > $alat->stok) {
             return back()->with('error', 'Stok ' . $alat->nama_alat . ' tidak mencukupi!');
         }
 
         $cart = session()->get('cart', []);
 
-        // Jika barang sudah ada di keranjang, jumlahnya ditambah
-        if(isset($cart[$alat->id])) {
+        if (isset($cart[$alat->id])) {
             $cart[$alat->id]['jumlah'] += $request->jumlah;
         } else {
             $cart[$alat->id] = [
@@ -40,100 +40,109 @@ class TransaksiController extends Controller
         }
 
         session()->put('cart', $cart);
-        return redirect()->route('peminjam.alat.index')->with('success', 'Alat berhasil ditambah ke daftar pinjam!');
+
+        return redirect()->route('peminjam.alat.index')
+            ->with('success', 'Alat berhasil ditambah ke daftar pinjam!');
     }
 
-    // 2. Menampilkan halaman keranjang/checkout
+    // ===============================
+    // HALAMAN CHECKOUT
+    // ===============================
     public function checkout()
     {
         $cart = session()->get('cart', []);
         return view('peminjam.transaksi.checkout', compact('cart'));
     }
 
-    // 3. Menyimpan banyak barang dan jadwal ke Database
+    // ===============================
+    // SIMPAN KE DATABASE (FIXED)
+    // ===============================
     public function store(Request $request)
     {
+        // 🔒 Pastikan user login
+        if (!auth()->check()) {
+            return back()->with('error', 'Silakan login terlebih dahulu!');
+        }
+
+        // ✅ Validasi
         $request->validate([
             'tgl_pinjam' => 'required|date|after_or_equal:today',
-            'tgl_kembali_rencana' => 'required|date|after:tgl_pinjam',
+            'tgl_kembali_rencana' => 'required|date|after_or_equal:tgl_pinjam',
         ]);
 
-        $cart = session()->get('cart');
-        if(!$cart) return redirect()->route('peminjam.alat.index')->with('error', 'Daftar pinjam kosong!');
+        // 🛒 Ambil cart
+        $cart = session()->get('cart', []);
 
-        // Membuat Kode Transaksi Unik
-        $kode_peminjaman = 'PMJ-' . date('YmdHis') . rand(10, 99);
+        if (count($cart) == 0) {
+            return back()->with('error', 'Daftar pinjam kosong!');
+        }
 
         try {
-            DB::transaction(function () use ($cart, $request, $kode_peminjaman) {
-                // Simpan ke Tabel Peminjamans (Header)
-                // Pastikan kolom alat_id di database sudah NULLABLE agar tidak error
-                $peminjaman = Peminjaman::create([
-                    'kode_peminjaman' => $kode_peminjaman,
-                    'user_id' => auth()->id(),
-                    'tgl_pinjam' => $request->tgl_pinjam,
+            DB::beginTransaction();
+
+            foreach ($cart as $id => $item) {
+                Peminjaman::create([
+                    'user_id'             => auth()->id(),
+                    'alat_id'             => $id,
+                    'jumlah'              => $item['jumlah'],
+                    'tgl_pinjam'          => $request->tgl_pinjam,
                     'tgl_kembali_rencana' => $request->tgl_kembali_rencana,
-                    'status' => 'menunggu',
-                    'denda' => 0,
-                    'alat_id' => null, // Dipaksa Null karena pindah ke tabel detail
-                    'jumlah' => null   // Dipaksa Null karena pindah ke tabel detail
+                    'status'              => 'menunggu',
+                    'kode_peminjaman'     => 'PMJ-' . strtoupper(Str::random(6)),
                 ]);
+            }
 
-                // Simpan ke Tabel Detail Peminjamans (Detail)
-                foreach ($cart as $id => $details) {
-                    DetailPeminjaman::create([
-                        'peminjaman_id' => $peminjaman->id,
-                        'alat_id' => $id,
-                        'jumlah' => $details['jumlah'],
-                    ]);
-
-                    // Mengurangi stok alat secara otomatis
-                    $alat = Alat::find($id);
-                    if ($alat) {
-                        $alat->decrement('stok', $details['jumlah']);
-                    }
-                }
-            });
+            DB::commit();
 
             session()->forget('cart');
-            return redirect()->route('peminjam.alat.index')->with('success', 'Peminjaman ' . $kode_peminjaman . ' berhasil dijadwalkan!');
+
+            return redirect()->route('peminjam.riwayat')
+                ->with('success', 'Pengajuan berhasil dikirim!');
 
         } catch (\Exception $e) {
-            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            DB::rollback();
+
+            return back()->with('error', 'Gagal: ' . $e->getMessage());
         }
     }
 
-    // 4. Menghapus item dari keranjang
+    // ===============================
+    // HAPUS CART
+    // ===============================
     public function removeFromCart($id)
     {
-        $cart = session()->get('cart');
-        if(isset($cart[$id])) {
+        $cart = session()->get('cart', []);
+
+        if (isset($cart[$id])) {
             unset($cart[$id]);
             session()->put('cart', $cart);
         }
+
         return back()->with('success', 'Alat dihapus dari daftar.');
     }
 
+    // ===============================
+    // RIWAYAT
+    // ===============================
     public function history()
     {
-        // Mengambil data riwayat milik user yang sedang login beserta detail alatnya
-        $riwayat = Peminjaman::with(['detailPeminjaman.alat'])
-            ->where('user_id', auth()->id())
+        $riwayat = Peminjaman::where('user_id', auth()->id())
             ->latest()
             ->get();
 
         return view('peminjam.transaksi.riwayat', compact('riwayat'));
     }
 
-    public function returning()
-    {
-        // Mengambil data yang statusnya 'disetujui' (artinya barang ada di tangan siswa)
-        $pinjamanAktif = Peminjaman::with(['detailPeminjaman.alat'])
-            ->where('user_id', auth()->id())
-            ->where('status', 'disetujui')
-            ->latest()
-            ->get();
+public function returning()
+{
+    $peminjamans = \App\Models\Peminjaman::with('detailPeminjaman.alat')
+        ->where('user_id', auth()->id())
+        ->where('status', 'disetujui') // yang masih dipinjam
+        ->latest()
+        ->get();
 
-        return view('peminjam.transaksi.kembalikan', compact('pinjamanAktif'));
-    }
+    return view('peminjam.transaksi.kembalikan', [
+        'pinjamanAktif' => $peminjamans
+    ]);
 }
+    }

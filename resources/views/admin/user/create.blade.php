@@ -1,79 +1,115 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="container" style="margin-top: 40px; max-width: 550px; font-family: 'Segoe UI', sans-serif;">
-    <div
-        style="background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); padding: 35px; border: 1px solid #e3e6f0;">
-        <h4 style="margin-bottom: 30px; color: #3a3b45; font-weight: 700; text-align: center;">Tambah Pengguna Baru</h4>
+<style>
+    /* Container utama dibuat Flexbox untuk menengahkan konten */
+    .content-wrapper-center {
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* Menengahkan secara horizontal */
+        justify-content: center; /* Menengahkan secara vertikal jika tinggi cukup */
+        min-height: 80vh;
+    }
 
-        {{-- Menampilkan Pesan Error Validasi  --}}
-        @if ($errors->any())
-        <div
-            style="background-color: #f8d7da; color: #842029; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 13px;">
-            <ul style="margin: 0;">
-                @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-        @endif
+    .form-card { 
+        background: #1e293b; 
+        border-radius: 16px; 
+        padding: 40px; 
+        border: 1px solid #334155; 
+        width: 100%;
+        max-width: 550px; /* Lebar maksimal form */
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
 
+    .form-label { 
+        color: #94a3b8; 
+        font-size: 12px; 
+        font-weight: 800; 
+        margin-bottom: 10px; 
+        display: block;
+        letter-spacing: 1px;
+    }
+
+    .form-control-dark { 
+        background: #0f172a; 
+        border: 1px solid #334155; 
+        color: #f8fafc; 
+        padding: 14px; 
+        border-radius: 12px; 
+        width: 100%; 
+        transition: 0.3s;
+        font-size: 14px;
+    }
+
+    .form-control-dark:focus { 
+        border-color: #6366f1; 
+        outline: none; 
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); 
+    }
+
+    .btn-save { 
+        background: linear-gradient(90deg, #6366f1, #a855f7); 
+        color: white; 
+        border: none; 
+        padding: 15px; 
+        border-radius: 12px; 
+        font-weight: 800; 
+        width: 100%; 
+        margin-top: 25px;
+        cursor: pointer;
+        transition: 0.3s;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .btn-save:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+</style>
+
+<div class="content-wrapper-center">
+    {{-- Header Tengah --}}
+    <div class="text-center mb-4">
+        <h3 style="color:#f8fafc; font-weight:800; letter-spacing: -1px; size: 1.8rem;">Tambah User Baru</h3>
+        <p style="color:#64748b; font-size: 14px;">Silakan isi data akun petugas atau peminjam di bawah ini.</p>
+    </div>
+
+    {{-- Form Card --}}
+    <div class="form-card">
         <form action="{{ route('admin.user.store') }}" method="POST">
             @csrf
-
-            {{-- Nama Lengkap [cite: 26] --}}
-            <div style="margin-bottom: 20px;">
-                <label
-                    style="display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; color: #4e73df; text-transform: uppercase;">Nama
-                    Lengkap</label>
-                <input type="text" name="name" value="{{ old('name') }}" placeholder="Masukkan nama lengkap"
-                    style="width: 100%; padding: 12px; border: 1px solid #d1d3e2; border-radius: 6px; outline: none;"
-                    required>
+            <div class="mb-4">
+                <label class="form-label">NAMA LENGKAP</label>
+                <input type="text" name="name" class="form-control-dark" required placeholder="Masukkan nama lengkap...">
+            </div>
+            
+            <div class="mb-4">
+                <label class="form-label">ALAMAT EMAIL</label>
+                <input type="email" name="email" class="form-control-dark" required placeholder="nama@email.com">
             </div>
 
-            {{-- Email Aktif  --}}
-            <div style="margin-bottom: 20px;">
-                <label
-                    style="display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; color: #4e73df; text-transform: uppercase;">Email
-                    Aktif</label>
-                <input type="email" name="email" value="{{ old('email') }}" placeholder="contoh@mail.com"
-                    style="width: 100%; padding: 12px; border: 1px solid #d1d3e2; border-radius: 6px; outline: none;"
-                    required>
-            </div>
-
-            {{-- Password  --}}
-            <div style="margin-bottom: 20px;">
-                <label
-                    style="display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; color: #4e73df; text-transform: uppercase;">Password</label>
-                <input type="password" name="password" placeholder="Minimal 6 karakter"
-                    style="width: 100%; padding: 12px; border: 1px solid #d1d3e2; border-radius: 6px; outline: none;"
-                    required>
-            </div>
-
-            {{-- Role/Privilege User [cite: 28, 30] --}}
-            <div style="margin-bottom: 30px;">
-                <label
-                    style="display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; color: #4e73df; text-transform: uppercase;">Hak
-                    Akses (Role)</label>
-                <select name="role"
-                    style="width: 100%; padding: 12px; border: 1px solid #d1d3e2; border-radius: 6px; background-color: white; cursor: pointer;"
-                    required>
-                    <option value="" disabled selected>-- Pilih Role --</option>
-                    <option value="peminjam" {{ old('role') == 'peminjam' ? 'selected' : '' }}>Peminjam</option>
-                    <option value="petugas" {{ old('role') == 'petugas' ? 'selected' : '' }}>Petugas</option>
-                    <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
+           <div class="mb-3">
+    <label>Password</label>
+    <input type="password" name="password" class="form-control">
+    <small style="color: #64748b; font-size: 0.75rem;">
+        *Minimal 8 karakter, wajib ada huruf KAPITAL dan angka.
+    </small>
+</div>
+            <div class="mb-4">
+                <label class="form-label">ROLE / HAK AKSES</label>
+                <select name="role" class="form-control-dark" required>
+                    <option value="peminjam">Peminjam (Siswa/Anggota)</option>
+                    <option value="petugas">Petugas (Staff Inventaris)</option>
+                    <option value="admin">Administrator (Full Access)</option>
                 </select>
             </div>
 
-            {{-- Tombol Aksi  --}}
-            <div style="display: flex; gap: 12px;">
-                <button type="submit"
-                    style="flex: 2; background-color: #4e73df; color: white; border: none; padding: 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 14px;">
-                    Simpan Data
-                </button>
-                <a href="{{ route('admin.user.index') }}"
-                    style="flex: 1; text-align: center; background-color: #f8f9fc; color: #4e73df; border: 1px solid #d1d3e2; padding: 14px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 700;">
-                    Batal
+            <button type="submit" class="btn-save">Daftarkan User Sekarang</button>
+            
+            <div class="text-center mt-4">
+                <a href="{{ route('admin.user.index') }}" style="color: #64748b; font-size: 13px; text-decoration: none;">
+                    ← Kembali ke Daftar User
                 </a>
             </div>
         </form>

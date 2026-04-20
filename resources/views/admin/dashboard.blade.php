@@ -110,6 +110,53 @@
         align-items: center;
         gap: 8px;
     }
+
+    /* Paksa semua background utama jadi dark */
+body, .container-fluid {
+    background-color: #0f172a !important;
+}
+
+/* FIX TABLE biar gak putih */
+.table {
+    background: transparent !important;
+    color: #e2e8f0;
+}
+
+.table td, .table th {
+    background: transparent !important;
+    border-color: #334155 !important;
+}
+
+/* Hilangkan putih di Bootstrap */
+.bg-white {
+    background-color: #1e293b !important;
+}
+
+/* Badge biar lebih soft */
+.badge.bg-danger {
+    background-color: #be123c !important;
+}
+
+.badge.bg-warning {
+    background-color: #d97706 !important;
+    color: white;
+}
+
+/* Link default bootstrap */
+a {
+    color: #818cf8;
+}
+
+/* Scrollbar biar dark juga */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 10px;
+}
+
 </style>
 
 <div class="container-fluid px-4 py-4">

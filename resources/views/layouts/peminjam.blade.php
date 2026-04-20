@@ -1,19 +1,18 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Siswa - MINJAM BOY</title>
     @vite(['resources/css/app.css','resources/js/app.js'])
     <style>
-        /* Base Reset & Full Background */
+        /* Base Setup - Menyamakan dengan standard Admin Utama */
         html, body {
             height: 100%;
             margin: 0;
-            padding: 0;
-            background-color: #0f172a !important; /* Slate 900 */
+            background-color: #0f172a !important; 
             color: #f8fafc;
+            font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
         }
 
         .main-wrapper {
@@ -21,11 +20,11 @@
             min-height: 100vh;
         }
 
-        /* Sidebar Siswa - Dark Slate */
-        .sidebar {
+        /* SIDEBAR: Menyamakan dengan warna sidebar admin yang lebih solid */
+        .sidebar-fixed {
             width: 260px;
-            background-color: #1e293b; /* Slate 800 */
-            border-right: 1px solid #334155;
+            background-color: #111827; 
+            border-right: 1px solid #1f2937;
             position: fixed;
             height: 100vh;
             left: 0;
@@ -35,41 +34,41 @@
             flex-direction: column;
         }
 
-        /* Content Area Push */
-        .content-area {
+        /* AREA KONTEN */
+        .content-main {
             flex: 1;
             margin-left: 260px;
             background-color: #0f172a;
             min-height: 100vh;
-            padding: 40px;
+            padding: 40px 50px;
         }
 
-        /* Navigasi Link Siswa */
-        .nav-link-student {
+        /* Navigasi Link (Sesuai gaya Admin) */
+        .nav-item-custom {
             display: flex;
             align-items: center;
             padding: 12px 20px;
             color: #94a3b8;
             text-decoration: none;
-            font-weight: 600;
             font-size: 14px;
-            border-radius: 12px;
+            font-weight: 600;
+            border-radius: 10px;
             margin: 4px 15px;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
         }
 
-        .nav-link-student:hover {
-            background: rgba(99, 102, 241, 0.1);
+        .nav-item-custom:hover {
             color: #818cf8;
+            background: rgba(99, 102, 241, 0.05);
         }
 
-        .nav-link-student.active {
-            background: #6366f1; /* Indigo 500 */
+        .nav-item-custom.active {
+            background: #6366f1; /* Indigo matching Admin */
             color: white;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
         }
 
-        .menu-label {
+        .sidebar-label {
             color: #475569;
             font-size: 10px;
             font-weight: 800;
@@ -78,29 +77,34 @@
             margin: 25px 0 10px 30px;
         }
 
-        /* Tombol Logout Keren */
-        .btn-logout-student {
+        /* Tombol Logout (Minimalis Gray-Red) */
+        .btn-logout {
             width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
             padding: 12px;
-            background: rgba(244, 63, 94, 0.05);
-            border: 1px solid rgba(244, 63, 94, 0.2);
-            border-radius: 14px;
-            color: #fb7185;
+            border-radius: 10px;
+            font-weight: 700;
             font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
-            cursor: pointer;
+            letter-spacing: 1.5px;
+            border: 1px solid #1f2937;
+            color: #4b5563;
+            background: transparent;
+            transition: 0.3s;
+            text-transform: uppercase;
         }
 
-        .btn-logout-student:hover {
-            background: #f43f5e;
-            color: white;
-            box-shadow: 0 10px 20px -5px rgba(244, 63, 94, 0.4);
+        .btn-logout:hover {
+            color: #f43f5e;
+            border-color: rgba(244, 63, 94, 0.5);
+            background: rgba(244, 63, 94, 0.02);
+        }
+
+        /* STYLE CARD UNTUK SISWA (Sama dengan Admin Card) */
+        .student-card {
+            background-color: #1e2139; /* Warna card ungu pekat sesuai gambar */
+            border-radius: 12px;
+            border-bottom: 4px solid #10b981; /* Aksen hijau untuk membedakan dengan Admin */
+            padding: 25px;
+            margin-bottom: 20px;
         }
     </style>
 </head>
@@ -108,70 +112,66 @@
 <body>
 
     <div class="main-wrapper">
-
-        <aside class="sidebar">
-            <div class="p-6 border-b border-slate-800/50">
-                <h1 class="text-white font-black text-xl tracking-tighter">MINJAM BOY</h1>
-                <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Siswa Dashboard</p>
+        <aside class="sidebar-fixed">
+            {{-- Brand Section --}}
+            <div class="p-6">
+                <h1 class="text-white font-black text-xl tracking-tighter mb-0">MINJAM BOY</h1>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <p class="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-0">Siswa Dashboard</p>
+                </div>
             </div>
 
-            <nav class="flex-1 overflow-y-auto py-4">
-                {{-- Dashboard --}}
-                <a href="" class="nav-link-student {{ request()->routeIs('peminjam.dashboard') ? 'active' : '' }}">
-                    🏠 Dashboard
+            {{-- Main Navigation --}}
+            <nav class="flex-1 overflow-y-auto">
+                <a href="{{ route('peminjam.dashboard') }}" class="nav-item-custom {{ request()->routeIs('peminjam.dashboard') ? 'active' : '' }}">
+                    Dashboard
                 </a>
 
-                <div class="menu-label">Layanan Pinjam</div>
-
-                {{-- Daftar Alat --}}
-                <a href="{{ route('peminjam.alat.index') }}" 
-                   class="nav-link-student {{ request()->routeIs('peminjam.alat.index') ? 'active' : '' }}">
-                    📦 Daftar Alat
+                <div class="sidebar-label">Layanan Pinjam</div>
+                <a href="{{ route('peminjam.alat.index') }}" class="nav-item-custom {{ request()->routeIs('peminjam.alat.index') ? 'active' : '' }}">
+                    Daftar Alat
+                </a>
+                <a href="{{ route('peminjam.checkout') }}" class="nav-item-custom {{ request()->routeIs('peminjam.checkout') ? 'active' : '' }}">
+                    Daftar Pinjam
+                </a>
+                <a href="{{ route('peminjam.kembalikan') }}" class="nav-item-custom {{ request()->routeIs('peminjam.kembalikan') ? 'active' : '' }}">
+                    Kembalikan Alat
                 </a>
 
-                {{-- Daftar Pinjam --}}
-                <a href="{{ route('peminjam.checkout') }}" 
-                   class="nav-link-student {{ request()->routeIs('peminjam.checkout') ? 'active' : '' }}">
-                    ➕ Daftar Pinjam
+                <div class="sidebar-label">Riwayat & Finansial</div>
+                <a href="{{ route('peminjam.riwayat') }}" class="nav-item-custom {{ request()->routeIs('peminjam.riwayat') ? 'active' : '' }}">
+                    Riwayat Peminjaman
                 </a>
-
-                {{-- Kembalikan Alat --}}
-                <a href="{{ route('peminjam.kembalikan') }}" 
-                   class="nav-link-student {{ request()->routeIs('peminjam.kembalikan') ? 'active' : '' }}">
-                    ↩️ Kembalikan Alat
-                </a>
-
-                <div class="menu-label">Riwayat & Finansial</div>
-
-                {{-- Riwayat --}}
-                <a href="{{ route('peminjam.riwayat') }}" 
-                   class="nav-link-student {{ request()->routeIs('peminjam.riwayat') ? 'active' : '' }}">
-                    📚 Riwayat Peminjaman
-                </a>
-
-                {{-- Pembayaran Denda --}}
-                <a href="" class="nav-link-student {{ request()->routeIs('peminjam.denda') ? 'active' : '' }}">
-                    💰 Pembayaran Denda
-                </a>
+                {{-- <a href="#" class="nav-item-custom">
+                    Pembayaran Denda
+                </a> --}}
             </nav>
 
-            {{-- Bagian Logout --}}
-            <div class="p-5 border-t border-slate-800">
+            {{-- Footer Sidebar --}}
+            <div class="p-5">
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" class="btn-logout-student">
-                        <span>🚪 LOGOUT SYSTEM</span>
+                    <button type="submit" class="btn-logout">
+                        LOGOUT SYSTEM
                     </button>
                 </form>
             </div>
         </aside>
 
-        <main class="content-area">
+        <main class="content-main">
+            {{-- Header Title (Meniru gaya screenshot Admin) --}}
+            <div class="mb-10">
+                <h2 class="text-white text-2xl font-bold tracking-tight">Student Overview</h2>
+                <div class="flex items-center gap-2">
+                    <p class="text-slate-400 text-sm mb-0">Sistem Informasi Inventaris — </p>
+                    <span class="text-emerald-500 text-sm font-semibold">Siswa Utama</span>
+                </div>
+            </div>
+
             @yield('content')
         </main>
-
     </div>
 
 </body>
-
 </html>

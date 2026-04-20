@@ -40,7 +40,13 @@ class AlatController extends Controller {
     }
 
     public function destroy(Alat $alat) {
-        $alat->delete();
-        return redirect()->route('admin.alat.index')->with('success', 'Alat berhasil dihapus');
-    }
+    // Hapus dulu catatan peminjaman alat ini di tabel detail
+    $alat->detail_peminjamans()->delete(); 
+    
+    // Baru hapus alatnya
+    $alat->delete();
+    
+    return redirect()->route('admin.alat.index')->with('success', 'Alat berhasil dihapus');
+}
+
 }
